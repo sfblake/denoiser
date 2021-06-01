@@ -1,0 +1,2 @@
+-r requirements.txt
+ipykernel==5.5.5
