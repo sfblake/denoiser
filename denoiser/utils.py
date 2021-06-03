@@ -7,8 +7,8 @@ DATA_KEY_0 = 'left_channel'
 DATA_KEY_1 = 'right_channel'
 LABEL_KEY = 'label'
 FILE_KEY = 'filename'
-START_KEY = 'start_time_s'
-LEN_KEY = 'duration_s'
+START_KEY = 'start_time_sec'
+LEN_KEY = 'duration_sec'
 
 
 def write_tfrecord(data: np.array, labels: np.array, file: str, start_time: float, duration: float) -> tf.train.Example:
@@ -61,7 +61,7 @@ def read_tfrecord(example: tf.train.Example) -> dict:
     features = {
         DATA_KEY_0: tf.io.VarLenFeature(tf.float32),
         DATA_KEY_1: tf.io.VarLenFeature(tf.float32),
-        LABEL_KEY: tf.io.VarLenFeature(tf.int32),
+        LABEL_KEY: tf.io.VarLenFeature(tf.int64),
         FILE_KEY: tf.io.FixedLenFeature([], tf.string),
         START_KEY: tf.io.FixedLenFeature([], tf.float32),
         LEN_KEY: tf.io.FixedLenFeature([], tf.float32)
@@ -79,7 +79,7 @@ def _tf_float_feature(x: List[float]) -> tf.train.Feature:
 
 def _tf_int_feature(x: List[int]) -> tf.train.Feature:
     """ Create an int tensorflow feature """
-    return tf.train.Feature(float_list=tf.train.Int64List(value=x))
+    return tf.train.Feature(int64_list=tf.train.Int64List(value=x))
 
 
 def _tf_str_feature(x: List[str]) -> tf.train.Feature:

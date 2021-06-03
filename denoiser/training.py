@@ -6,7 +6,7 @@ import shutil
 import tensorflow as tf
 from typing import Tuple
 
-from .utils import write_tfrecord
+from denoiser.utils import write_tfrecord
 
 
 RAW_FOLDER = 'raw'
