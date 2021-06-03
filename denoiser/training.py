@@ -4,15 +4,14 @@ import os
 from scipy.io import wavfile
 import shutil
 import tensorflow as tf
-from typing import Tuple, Union
+from typing import Tuple
+
+from .utils import write_tfrecord
 
 
 RAW_FOLDER = 'raw'
 CLEAN_FOLDER = 'clean'
 TFRECORD_EXTENSTION = '.tfrec'
-DATA_FEATURE_0 = 'left'
-DATA_FEATURE_1 = 'right'
-LABEL = 'label'
 
 
 def create_training_samples(
@@ -82,12 +81,10 @@ def create_training_samples(
         logging.info("Writing {} samples to {}".format(sample_ids.shape[0], outfile_path))
         with tf.io.TFRecordWriter(outfile_path) as writer:
             for sample_id in sample_ids:
-                example = _create_tfrecord(
+                example = write_tfrecord(
                     raw_data[sample_id:sample_id + sample_size_int],
                     labels[sample_id:sample_id + sample_size_int].astype(int),
-                    start_time=float(sample_id / raw_bitrate),
-                    duration=float(sample_size_int / raw_bitrate),
-                    file=file
+                    file=file, start_time=float(sample_id / raw_bitrate), duration=float(sample_size_int / raw_bitrate)
                 )
                 writer.write(example.SerializeToString())
 
@@ -120,50 +117,3 @@ def _get_indices_from_labels(labels: np.array, sample_size: int, step_size: int)
     true_sample_ids = sample_ids[next_true_label < sample_size]
     false_sample_ids = sample_ids[next_true_label >= sample_size]
     return true_sample_ids, false_sample_ids
-
-
-def _create_tfrecord(data: np.array, labels: np.array, **kwargs) -> tf.train.Example:
-    """
-    Create a tfrecord from two channel audio data and a set of corresponding labels.
-
-    Parameters
-    ----------
-    data : np.array
-        2 channel audio data, shape (num_timesteps, 2)
-    labels : np.array
-        Corresponding timestep laebls, shape (num_timesteps,)
-    **kwargs
-        Any other single-valued variables to be added to the tfrecord
-
-    Returns
-    -------
-    tf.train.Example
-        tf example for serialising to tf record
-    """
-
-    feature = {
-        k: _get_single_tf_feature(v)
-        for k, v in kwargs.items()
-    }
-    feature[DATA_FEATURE_0] = tf.train.Feature(float_list=tf.train.FloatList(value=data[:, 0]))
-    feature[DATA_FEATURE_1] = tf.train.Feature(float_list=tf.train.FloatList(value=data[:, 1]))
-    feature[LABEL] = tf.train.Feature(int64_list=tf.train.Int64List(value=labels))
-    return tf.train.Example(features=tf.train.Features(feature=feature))
-
-
-def _get_single_tf_feature(x: Union[str, float, int]) -> tf.train.Feature:
-    """ Create a tensorflow feature from a single value """
-    if type(x) is str:
-        return tf.train.Feature(
-            bytes_list=tf.train.BytesList(value=[x.encode('utf-8')])
-        )
-    elif type(x) is float:
-        return tf.train.Feature(
-            float_list=tf.train.FloatList(value=[x])
-        )
-    elif type(x) is int:
-        return tf.train.Feature(
-            int64_list=tf.train.Int64List(value=[x])
-        )
-    else:
-        raise TypeError("Unknown tf feature type for {}".format(type(x)))
