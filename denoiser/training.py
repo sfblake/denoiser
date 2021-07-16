@@ -12,6 +12,7 @@ from denoiser.utils import write_tfrecord
 RAW_FOLDER = 'raw'
 CLEAN_FOLDER = 'clean'
 TFRECORD_EXTENSTION = '.tfrec'
+WAV_EXTENSION = '.wav'
 
 
 def create_training_samples(
@@ -39,8 +40,8 @@ def create_training_samples(
     """
     raw_dir = os.path.join(input_dir, RAW_FOLDER)
     clean_dir = os.path.join(input_dir, CLEAN_FOLDER)
-    raw_files = os.listdir(raw_dir)
-    clean_files = os.listdir(clean_dir)
+    raw_files = [f for f in os.listdir(raw_dir) if f.endswith(WAV_EXTENSION)]
+    clean_files = [f for f in os.listdir(clean_dir) if f.endswith(WAV_EXTENSION)]
     training_files = set(raw_files).intersection(set(clean_files))
     if len(training_files) == 0:
         raise FileNotFoundError("No training files found")
