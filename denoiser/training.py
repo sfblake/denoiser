@@ -68,6 +68,9 @@ def create_training_samples(
         step_size_int = int(step_size * raw_bitrate)
         labels = np.not_equal(raw_data, clean_data).any(axis=1)  # Timestep is noise if raw data does not match clean
         noise_sample_ids, clean_sample_ids = _get_indices_from_labels(labels, sample_size_int, step_size_int)
+        # Filter to full samples only
+        noise_sample_ids = noise_sample_ids[noise_sample_ids+sample_size_int < labels.shape[0]]
+        clean_sample_ids = clean_sample_ids[clean_sample_ids+sample_size_int < labels.shape[0]]
         np.random.seed(0)  # Sample repeatably
         sample_ids = np.concatenate([
             np.random.choice(
@@ -80,6 +83,7 @@ def create_training_samples(
 
         outfile_path = os.path.join(output_dir, os.path.splitext(file)[0]) + TFRECORD_EXTENSTION
         logging.info("Writing {} samples to {}".format(sample_ids.shape[0], outfile_path))
+
         with tf.io.TFRecordWriter(outfile_path) as writer:
             for sample_id in sample_ids:
                 example = write_tfrecord(
