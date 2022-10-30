@@ -6,11 +6,23 @@ from scipy.io import wavfile
 import tensorflow as tf
 
 
-def process_file(path_to_file: str, model_bitrate: int, model: tf.keras.Model):
+def process_file(path_to_file: str, model: tf.keras.Model, model_bitrate: int):
     """
+    -
 
-    :param path_to_file:
-    :return:
+    Parameters
+    ----------
+    path_to_file : str
+        Location of the wav file to process
+    model : tf.keras.Model
+        Model used to label noise
+    model_bitrate : int
+        Bitrate of the model used
+
+    Returns
+    -------
+    preds : np.array
+        Noise labels for the file
     """
     logging.info("Reading file {}".format(path_to_file))
     bitrate, data = wavfile.read(os.path.join(path_to_file))
