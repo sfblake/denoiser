@@ -3,12 +3,14 @@ import logging
 import numpy as np
 import os
 from scipy.io import wavfile
+from scipy.signal import convolve
 import tensorflow as tf
 
 
-def process_file(path_to_file: str, model: tf.keras.Model, model_bitrate: int):
+def label_file(path_to_file: str, model: tf.keras.Model, model_bitrate: int,
+               avg_window: int = 1, threshold: float = 0.5):
     """
-    -
+    Generate noise labels for a .wav file using the specified model.
 
     Parameters
     ----------
@@ -18,6 +20,10 @@ def process_file(path_to_file: str, model: tf.keras.Model, model_bitrate: int):
         Model used to label noise
     model_bitrate : int
         Bitrate of the model used
+    avg_window : int
+        Window size to average predictions over
+    threshold : float
+        Probability threshold for a detection of noise
 
     Returns
     -------
@@ -35,9 +41,7 @@ def process_file(path_to_file: str, model: tf.keras.Model, model_bitrate: int):
     # Pad to get complete samples
     num_samples = int(np.ceil(track_length / sample_length))
     extra_steps = int(num_samples * sample_length - track_length)
-    front_pad = np.floor(extra_steps / 2).astype(int)
-    back_pad = np.ceil(extra_steps / 2).astype(int)
-    data_padded = np.pad(data, pad_width=((front_pad, back_pad), (0, 0)), mode='edge')
+    data_padded = np.pad(data, pad_width=((extra_steps, 0), (0, 0)), mode='edge')
     logging.info("File length {:.0f}s split into {} samples"
                  .format(track_length/bitrate, num_samples))
 
@@ -45,7 +49,9 @@ def process_file(path_to_file: str, model: tf.keras.Model, model_bitrate: int):
     preds = model.predict(
         data_padded.reshape(num_samples, sample_length, 2)
     )
-    preds = preds.reshape(-1)[front_pad:-back_pad]
+    preds = preds.reshape(-1)[extra_steps:]
     logging.info("Finished predicting in {}s"
                  .format((datetime.now() - predict_start).seconds))
-    return preds
+
+    preds = convolve(preds, [1]*avg_window, mode='same') / avg_window
+    return (preds > threshold).astype(int)
