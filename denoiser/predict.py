@@ -36,3 +36,4 @@ def process_file(path_to_file: str, model_bitrate: int, model: tf.keras.Model):
     preds = preds.reshape(-1)[front_pad:-back_pad]
     logging.info("Finished predicting in {}s"
                  .format((datetime.now() - predict_start).seconds))
+    return preds

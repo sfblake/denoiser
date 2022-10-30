@@ -20,7 +20,7 @@ def write_tfrecord(data: np.array, labels: np.array, file: str, start_time: floa
     data : np.array
         2 channel audio data, shape (num_timesteps, 2)
     labels : np.array
-        Corresponding timestep laebls, shape (num_timesteps,)
+        Corresponding timestep labels, shape (num_timesteps,)
     file : str
         Name of wav file the sample is taken from
     start_time : float
