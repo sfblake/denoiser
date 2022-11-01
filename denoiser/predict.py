@@ -37,12 +37,14 @@ def clean_audio(path_to_file: str, model: tf.keras.Model, avg_window: int = 1, t
 
     predict_start = datetime.now()
     preds = _make_predictions(audio_sequence, model)
-    logging.info("Finished predicting in {:.1f}s".format((datetime.now() - predict_start).seconds))
+    logging.info("Finished predicting in {:.2f}s".format((datetime.now() - predict_start).microseconds/1000000))
 
     preds = _apply_rolling_average(preds, avg_window)
     labels = (preds > threshold)
 
+    predict_start = datetime.now()
     clean_sequence = _interpolate_sequence_using_labels(audio_sequence, labels, interpolate.CubicSpline, fit_window)
+    logging.info("Finished interpolating in {:.2f}s".format((datetime.now() - predict_start).microseconds/1000000))
     return clean_sequence
 
 
