@@ -9,8 +9,8 @@ import tensorflow as tf
 from typing import Callable, Tuple
 
 
-def get_audio_and_labels_from_file(path_to_file: str, model: tf.keras.Model,
-                                   avg_window: int = 1, threshold: float = 0.5, fit_window: int = 1000):
+def clean_audio(path_to_file: str, model: tf.keras.Model, avg_window: int = 1, threshold: float = 0.5,
+                fit_window: int = 1000):
     """
     Load data and generate noise labels for a .wav file using the specified model.
 
