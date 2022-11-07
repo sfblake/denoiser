@@ -9,7 +9,7 @@ import tensorflow as tf
 from typing import Callable, Tuple
 
 
-def clean_audio(input_path: str, output_path, model: tf.keras.Model, avg_window: int = 1, threshold: float = 0.5,
+def clean_audio(input_path: str, output_path, model: tf.keras.Model, avg_window: int = 10, threshold: float = 0.5,
                 fit_window: int = 1000):
     """
     Load data and generate noise labels for a .wav file using the specified model.
@@ -182,5 +182,5 @@ def _masked_interpolation(sequence: np.array, mask: np.array, func: Callable) ->
     sequence = sequence.copy()
     xrange = np.arange(sequence.shape[0])
     fitted_func = func(xrange[mask], sequence[mask])
-    sequence[mask] = fitted_func(xrange[mask])
+    sequence[~mask] = fitted_func(xrange[~mask])
     return sequence
