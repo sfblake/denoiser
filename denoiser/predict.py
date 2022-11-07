@@ -9,15 +9,17 @@ import tensorflow as tf
 from typing import Callable, Tuple
 
 
-def clean_audio(path_to_file: str, model: tf.keras.Model, avg_window: int = 1, threshold: float = 0.5,
+def clean_audio(input_path: str, output_path, model: tf.keras.Model, avg_window: int = 1, threshold: float = 0.5,
                 fit_window: int = 1000):
     """
     Load data and generate noise labels for a .wav file using the specified model.
 
     Parameters
     ----------
-    path_to_file : str
-        Location of the wav file to process
+    input_path : str
+        Location of the wav file to
+    output_path : str
+        Location of the wav file to output
     model : tf.keras.Model
         Model used to label noise
     avg_window : int
@@ -32,8 +34,8 @@ def clean_audio(path_to_file: str, model: tf.keras.Model, avg_window: int = 1, t
     np.array
         Cleaned audio sequence
     """
-    logging.info("Reading file {}".format(path_to_file))
-    _, audio_sequence = wavfile.read(os.path.join(path_to_file))
+    logging.info(f"Reading file {input_path}")
+    bitrate, audio_sequence = wavfile.read(os.path.join(input_path))
 
     predict_start = datetime.now()
     preds = _make_predictions(audio_sequence, model)
@@ -45,7 +47,9 @@ def clean_audio(path_to_file: str, model: tf.keras.Model, avg_window: int = 1, t
     predict_start = datetime.now()
     clean_sequence = _interpolate_sequence_using_labels(audio_sequence, labels, interpolate.CubicSpline, fit_window)
     logging.info("Finished interpolating in {:.2f}s".format((datetime.now() - predict_start).microseconds/1000000))
-    return clean_sequence
+
+    wavfile.write(output_path, bitrate, clean_sequence)
+    logging.info(f"Written to {output_path}")
 
 
 def _make_predictions(audio_sequence: np.array, model: tf.keras.Model) -> np.array:
