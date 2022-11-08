@@ -1,58 +1,17 @@
-from datetime import datetime
-import logging
 import numpy as np
-import os
-from scipy import interpolate
-from scipy.io import wavfile
+from scipy.interpolate import CubicSpline
 from scipy.signal import convolve
 import tensorflow as tf
 from typing import Callable, Tuple
 
 
-def clean_audio(input_path: str, output_path, model: tf.keras.Model, avg_window: int = 10, threshold: float = 0.5,
-                fit_window: int = 1000):
-    """
-    Load data and generate noise labels for a .wav file using the specified model.
-
-    Parameters
-    ----------
-    input_path : str
-        Location of the wav file to
-    output_path : str
-        Location of the wav file to output
-    model : tf.keras.Model
-        Model used to label noise
-    avg_window : int
-        Window size to average predictions over
-    threshold : float
-        Probability threshold for a detection of noise
-    fit_window : int
-        Window size to fit the interpolation function over
-
-    Returns
-    -------
-    np.array
-        Cleaned audio sequence
-    """
-    logging.info(f"Reading file {input_path}")
-    bitrate, audio_sequence = wavfile.read(os.path.join(input_path))
-
-    predict_start = datetime.now()
-    preds = _make_predictions(audio_sequence, model)
-    logging.info("Finished predicting in {:.2f}s".format((datetime.now() - predict_start).microseconds/1000000))
-
-    preds = _apply_rolling_average(preds, avg_window)
-    labels = (preds > threshold)
-
-    predict_start = datetime.now()
-    clean_sequence = _interpolate_sequence_using_labels(audio_sequence, labels, interpolate.CubicSpline, fit_window)
-    logging.info("Finished interpolating in {:.2f}s".format((datetime.now() - predict_start).microseconds/1000000))
-
-    wavfile.write(output_path, bitrate, clean_sequence)
-    logging.info(f"Written to {output_path}")
+CUBIC_SPLINE = 'cubicspline'
+INTERPOLATION_FUNCTIONS = {
+    CUBIC_SPLINE: CubicSpline
+}
 
 
-def _make_predictions(audio_sequence: np.array, model: tf.keras.Model) -> np.array:
+def make_predictions(audio_sequence: np.array, model: tf.keras.Model) -> np.array:
     """
     Predict noise probabilities for an audio sequence using the specified model.
 
@@ -82,7 +41,7 @@ def _make_predictions(audio_sequence: np.array, model: tf.keras.Model) -> np.arr
     return probs.reshape(-1)[extra_steps:]
 
 
-def _apply_rolling_average(sequence: np.array, avg_window: int = 1) -> np.array:
+def apply_rolling_average(sequence: np.array, avg_window: int = 1) -> np.array:
     """
     Apply a rolling average with given window size to a sequence.
 
@@ -101,8 +60,8 @@ def _apply_rolling_average(sequence: np.array, avg_window: int = 1) -> np.array:
     return convolve(sequence, [1] * avg_window, mode='same') / avg_window
 
 
-def _interpolate_sequence_using_labels(sequence: np.array, labels: np.array, func: Callable,
-                                       fit_window: int = 1000) -> np.array:
+def interpolate_sequence_using_labels(sequence: np.array, labels: np.array, func: Callable,
+                                      fit_window: int = 1000) -> np.array:
     """
     Interpolate a sequence for values using a set of labels.
 
