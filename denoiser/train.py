@@ -6,18 +6,16 @@ import shutil
 import tensorflow as tf
 from typing import Tuple
 
-from denoiser.utils import write_tfrecord
+from denoiser.utils import list_wavfiles, write_tfrecord
 
 
 RAW_FOLDER = 'raw'
 CLEAN_FOLDER = 'clean'
 TFRECORD_EXTENSTION = '.tfrec'
-WAV_EXTENSION = '.wav'
 
 
-def create_training_samples(
-    input_dir: str, output_dir: str, sample_size: float, step_size: float, num_samples: int, noise_fraction: float = 0.5
-) -> None:
+def create_training_samples(input_dir: str, output_dir: str, sample_size: float, step_size: float,
+                            num_samples: int, noise_fraction: float = 0.5) -> None:
     """
     From a set of raw (with noise) and clean (noise removed) wav files, create tfrecord files with samples for model
     training. One .tfrec file is generated per raw file.
@@ -40,8 +38,8 @@ def create_training_samples(
     """
     raw_dir = os.path.join(input_dir, RAW_FOLDER)
     clean_dir = os.path.join(input_dir, CLEAN_FOLDER)
-    raw_files = [f for f in os.listdir(raw_dir) if f.endswith(WAV_EXTENSION)]
-    clean_files = [f for f in os.listdir(clean_dir) if f.endswith(WAV_EXTENSION)]
+    raw_files = list_wavfiles(raw_dir)
+    clean_files = list_wavfiles(clean_dir)
     training_files = set(raw_files).intersection(set(clean_files))
     if len(training_files) == 0:
         raise FileNotFoundError("No training files found")
@@ -67,23 +65,12 @@ def create_training_samples(
         sample_size_int = int(sample_size * raw_bitrate)
         step_size_int = int(step_size * raw_bitrate)
         labels = np.not_equal(raw_data, clean_data).any(axis=1)  # Timestep is noise if raw data does not match clean
-        noise_sample_ids, clean_sample_ids = _get_indices_from_labels(labels, sample_size_int, step_size_int)
-        # Filter to full samples only
-        noise_sample_ids = noise_sample_ids[noise_sample_ids+sample_size_int < labels.shape[0]]
-        clean_sample_ids = clean_sample_ids[clean_sample_ids+sample_size_int < labels.shape[0]]
-        np.random.seed(0)  # Sample repeatably
-        sample_ids = np.concatenate([
-            np.random.choice(
-                noise_sample_ids, num_noise_samples, replace=noise_sample_ids.shape[0] < num_noise_samples
-            ),
-            np.random.choice(
-                clean_sample_ids, num_clean_samples, replace=clean_sample_ids.shape[0] < num_clean_samples
-            )
-        ])
+        sample_ids = _get_sample_ids_from_labels(
+            labels, sample_size_int, step_size_int, num_noise_samples, num_clean_samples
+        )
 
         outfile_path = os.path.join(output_dir, os.path.splitext(file)[0]) + TFRECORD_EXTENSTION
         logging.info("Writing {} samples to {}".format(sample_ids.shape[0], outfile_path))
-
         with tf.io.TFRecordWriter(outfile_path) as writer:
             for sample_id in sample_ids:
                 example = write_tfrecord(
@@ -92,6 +79,47 @@ def create_training_samples(
                     file=file, start_time=float(sample_id / raw_bitrate), duration=float(sample_size_int / raw_bitrate)
                 )
                 writer.write(example.SerializeToString())
+
+
+def _get_sample_ids_from_labels(labels: np.array, sample_size: int, step_size: int,
+                                num_true_samples: int, num_false_samples: int) -> np.array:
+    """
+    Given a 1D array of sequential boolean labels (where True is much rarer than False), generate a certain number of
+    random "true" (containing a True label) and "false" (not containing a True label) samples
+
+    Parameters
+    ----------
+    labels : np.array
+        1D array of sequential labels
+    sample_size : int
+        Length of the samples to be generated
+    step_size : int
+        Step size between consecutive samples
+    num_true_samples : int
+        Number of true samples to be generated
+    num_false_samples : int
+        Number of false samples to be generated
+
+    Returns
+    -------
+    sample_ids : np.array
+        Starting sample ids
+    """
+    np.random.seed(0)  # Sample repeatably
+    true_sample_ids, false_sample_ids = _get_indices_from_labels(labels, sample_size, step_size)
+    # Filter to full samples only
+    true_sample_ids = true_sample_ids[true_sample_ids + sample_size < labels.shape[0]]
+    false_sample_ids = false_sample_ids[false_sample_ids + sample_size < labels.shape[0]]
+    sample_ids = np.concatenate([
+        np.random.choice(
+            true_sample_ids, num_true_samples, replace=true_sample_ids.shape[0] < num_true_samples
+        ),
+        np.random.choice(
+            false_sample_ids, num_false_samples, replace=false_sample_ids.shape[0] < num_false_samples
+        )
+    ])
+    np.random.shuffle(sample_ids)
+    return sample_ids
 
 
 def _get_indices_from_labels(labels: np.array, sample_size: int, step_size: int) -> Tuple[np.array, np.array]:

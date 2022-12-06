@@ -1,4 +1,5 @@
 import numpy as np
+import os
 import tensorflow as tf
 from typing import List
 
@@ -9,6 +10,7 @@ LABEL_KEY = 'label'
 FILE_KEY = 'filename'
 START_KEY = 'start_time_sec'
 LEN_KEY = 'duration_sec'
+WAV_EXTENSION = '.wav'
 
 
 def write_tfrecord(data: np.array, labels: np.array, file: str, start_time: float, duration: float) -> tf.train.Example:
@@ -85,3 +87,8 @@ def _tf_int_feature(x: List[int]) -> tf.train.Feature:
 def _tf_str_feature(x: List[str]) -> tf.train.Feature:
     """ Create a string tensorflow feature """
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[s.encode('utf-8') for s in x]))
+
+
+def list_wavfiles(path: str) -> List[str]:
+    """ List all .wav files in the specified path """
+    return [f for f in os.listdir(path) if f.endswith(WAV_EXTENSION)]
