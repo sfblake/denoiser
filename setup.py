@@ -14,6 +14,9 @@ setup(
     packages=find_packages(),
     install_requires=install_requires,
     entry_points={
-        'console_scripts': ['denoiser=denoiser.clean_audio_file:main']
+        'console_scripts': [
+            'denoiser=denoiser.scripts.clean_audio_file:main',
+            'denoiser-train=denoiser.scripts.train_model:main'
+        ]
     }
 )

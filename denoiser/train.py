@@ -15,7 +15,7 @@ TFRECORD_EXTENSTION = '.tfrec'
 
 
 def create_tfrecords(input_dir: str, output_dir: str, sample_size: float, step_size: float, num_samples: int,
-                     noise_fraction: float = 0.5) -> list:
+                     noise_fraction: float = 0.5) -> Tuple[list, int]:
     """
     From a set of raw (with noise) and clean (noise removed) wav files, create tfrecord files with samples for model
     training. One .tfrec file is generated per raw file.
@@ -40,11 +40,11 @@ def create_tfrecords(input_dir: str, output_dir: str, sample_size: float, step_s
     -------
     output_files : list
         List of tfrecord output files
+    bitrate : int
+        Bit rate of the audio data
     """
-    raw_dir = os.path.join(input_dir, RAW_FOLDER)
-    clean_dir = os.path.join(input_dir, CLEAN_FOLDER)
-    raw_files = list_wavfiles(raw_dir)
-    clean_files = list_wavfiles(clean_dir)
+    raw_files = list_wavfiles(os.path.join(input_dir, RAW_FOLDER))
+    clean_files = list_wavfiles(os.path.join(input_dir, CLEAN_FOLDER))
     training_files = set(raw_files).intersection(set(clean_files))
     if len(training_files) == 0:
         raise FileNotFoundError("No training files found")
@@ -85,7 +85,7 @@ def create_tfrecords(input_dir: str, output_dir: str, sample_size: float, step_s
                 writer.write(example.SerializeToString())
         output_files.append(outfile_path)
 
-    return output_files
+    return output_files, bitrate
 
 
 def create_sample_from_tfrecord(example: tf.train.Example) -> Tuple[tf.Tensor, tf.Tensor]:

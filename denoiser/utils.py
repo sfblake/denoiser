@@ -13,15 +13,15 @@ LEN_KEY = 'duration_sec'
 WAV_EXTENSION = '.wav'
 
 
-def write_tfrecord(data: np.array, labels: np.array, file: str, start_time: float, duration: float) -> tf.train.Example:
+def write_tfrecord(data: np.Array, labels: np.Array, file: str, start_time: float, duration: float) -> tf.train.Example:
     """
     Create a tfrecord from two channel audio data and a set of corresponding labels.
 
     Parameters
     ----------
-    data : np.array
+    data : np.Array
         2 channel audio data, shape (num_timesteps, 2)
-    labels : np.array
+    labels : np.Array
         Corresponding timestep labels, shape (num_timesteps,)
     file : str
         Name of wav file the sample is taken from
@@ -48,7 +48,7 @@ def write_tfrecord(data: np.array, labels: np.array, file: str, start_time: floa
 
 def read_tfrecord(example: tf.train.Example) -> dict:
     """
-    Read a tfrecord
+    Convert a tfrecord example into a name: tensor dict.
 
     Parameters
     ----------
