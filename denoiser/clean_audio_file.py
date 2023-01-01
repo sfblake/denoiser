@@ -5,6 +5,7 @@ import tensorflow as tf
 
 from datetime import datetime
 from scipy.io import wavfile
+from typing import Callable
 
 from denoiser.predict import apply_rolling_average, interpolate_sequence_using_labels, make_predictions, \
     CUBIC_SPLINE, INTERPOLATION_FUNCTIONS
@@ -15,7 +16,7 @@ def _get_time_since(start: datetime) -> float:
     return (datetime.now() - start).microseconds / 1000000
 
 
-def _get_fit_func(fit_func: str):
+def _get_fit_func(fit_func: str) -> Callable:
     """ Get the interpolation function """
     return INTERPOLATION_FUNCTIONS.get(fit_func)
 
