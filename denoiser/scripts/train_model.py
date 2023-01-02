@@ -1,5 +1,6 @@
 import argparse
 import logging
+import numpy as np
 import tempfile
 import tensorflow as tf
 
@@ -51,6 +52,12 @@ parser.add_argument(
     help='Training batch size'
 )
 parser.add_argument(
+    '--shuffle-buffer-size',
+    type=int,
+    default=None,
+    help='Dataset shuffle buffer size'
+)
+parser.add_argument(
     '--log',
     action='store_true'
 )
@@ -75,8 +82,19 @@ if __name__ == "__main__":
             noise_fraction=args.noise_fraction
         )
 
+        if args.shuffle_buffer_size:
+            if args.shuffle_buffer_size <= args.samples_per_tfrecord:
+                logging.warning(
+                    f"Data not properly shuffled: shuffle_buffer_size {args.shuffle_buffer_size} smaller than"
+                    f" samples_per_tfrecord {args.samples_per_tfrecord}"
+                )
+            shuffle_buffer_size = args.shuffle_buffer_size
+        else:
+            shuffle_buffer_size = args.samples_per_tfrecord * 10  # Default to shuffling over multiple tfrecords
+
+        np.random.shuffle(tfrecord_files)
         dataset = tf.data.TFRecordDataset(tfrecord_files)
         dataset = dataset.map(create_sample_from_tfrecord, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        dataset = dataset.shuffle(2048)  # TODO: This is less than the number of samples per track, need to split tracks between files
+        dataset = dataset.shuffle(shuffle_buffer_size)
         dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
         dataset = dataset.batch(args.batch_size)
