@@ -27,10 +27,16 @@ parser.add_argument(
     help='Step between consecutive training samples, in seconds'
 )
 parser.add_argument(
-    '--num-samples',
+    '--total-samples',
     type=int,
     default=10000,
-    help='The number of samples to generate from each wav file'
+    help='The total number of samples to generate'
+)
+parser.add_argument(
+    '--samples-per-tfrecord',
+    type=int,
+    default=100,
+    help='Number of samples per tfrecord file'
 )
 parser.add_argument(
     '--noise-fraction',
@@ -64,7 +70,8 @@ if __name__ == "__main__":
             output_dir=training_dir,
             sample_size=args.sample_size,
             step_size=args.step_size,
-            num_samples=args.num_samples,
+            total_samples=args.total_samples,
+            samples_per_tfrecord=args.samples_per_tfrecord,
             noise_fraction=args.noise_fraction
         )
 

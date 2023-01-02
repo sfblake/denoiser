@@ -11,20 +11,20 @@ INTERPOLATION_FUNCTIONS = {
 }
 
 
-def make_predictions(audio_sequence: np.Array, model: tf.keras.Model) -> np.Array:
+def make_predictions(audio_sequence: np.array, model: tf.keras.Model) -> np.array:
     """
     Predict noise probabilities for an audio sequence using the specified model.
 
     Parameters
     ----------
-    audio_sequence : np.Array, shape (num_timesteps, 2)
+    audio_sequence : np.array, shape (num_timesteps, 2)
         Two channel audio sequence
     model : tf.keras.Model
         Model used to label noise
 
     Returns
     -------
-    np.Array, shape (num_timesteps,)
+    np.array, shape (num_timesteps,)
         Noise probabilities for the audio sequence
     """
     track_length = audio_sequence.shape[0]
@@ -41,35 +41,35 @@ def make_predictions(audio_sequence: np.Array, model: tf.keras.Model) -> np.Arra
     return probs.reshape(-1)[extra_steps:]
 
 
-def apply_rolling_average(sequence: np.Array, avg_window: int = 1) -> np.Array:
+def apply_rolling_average(sequence: np.array, avg_window: int = 1) -> np.array:
     """
     Apply a rolling average with given window size to a sequence.
 
     Parameters
     ----------
-    sequence : np.Array
+    sequence : np.array
         1d array to apply average to
     avg_window : int
         Window size to average over
 
     Returns
     -------
-    np.Array
+    np.array
         Averaged sequence
     """
     return convolve(sequence, [1] * avg_window, mode='same') / avg_window
 
 
-def interpolate_sequence_using_labels(sequence: np.Array, labels: np.Array, func: Callable,
-                                      fit_window: int = 1000) -> np.Array:
+def interpolate_sequence_using_labels(sequence: np.array, labels: np.array, func: Callable,
+                                      fit_window: int = 1000) -> np.array:
     """
     Interpolate a sequence for values using a set of labels.
 
     Parameters
     ----------
-    sequence : np.Array, shape (num_timesteps, num_features)
+    sequence : np.array, shape (num_timesteps, num_features)
         Sequence to interpolate
-    labels : np.Array, shape (num_timesteps,)
+    labels : np.array, shape (num_timesteps,)
         Boolean labels for sequence, sequence will be interpolated where True
     func : callable
         Interpolation function to use, from scipy.interpolate
@@ -78,7 +78,7 @@ def interpolate_sequence_using_labels(sequence: np.Array, labels: np.Array, func
 
     Returns
     -------
-    np.Array, shape (num_timesteps, num_features)
+    np.array, shape (num_timesteps, num_features)
         Interpolated sequence
     """
     sequence = sequence.copy()
@@ -97,18 +97,18 @@ def interpolate_sequence_using_labels(sequence: np.Array, labels: np.Array, func
     return sequence
 
 
-def _get_periods_from_labels(labels: np.Array) -> Tuple[np.Array, np.Array]:
+def _get_periods_from_labels(labels: np.array) -> Tuple[np.array, np.array]:
     """
     For a boolean array get the start and end index of periods of consecutive True values
 
     Parameters
     ----------
-    labels : np.Array
+    labels : np.array
         boolean array
 
     Returns
     -------
-    (np.Array, np.Array)
+    (np.array, np.array)
         Start and end indices of True periods
     """
     indices = np.argwhere(labels[1:] != labels[:-1]).reshape(-1)
@@ -120,22 +120,22 @@ def _get_periods_from_labels(labels: np.Array) -> Tuple[np.Array, np.Array]:
     return indices[::2], indices[1::2]
 
 
-def _masked_interpolation(sequence: np.Array, mask: np.Array, func: Callable) -> np.Array:
+def _masked_interpolation(sequence: np.array, mask: np.array, func: Callable) -> np.array:
     """
     Interpolate the masked values of a sequence using the given function.
 
     Parameters
     ----------
-    sequence : np.Array, shape (num_timesteps, num_features)
+    sequence : np.array, shape (num_timesteps, num_features)
         Sequence to interpolate
-    mask : np.Array, shape (num_timesteps,)
+    mask : np.array, shape (num_timesteps,)
         Boolean sequence mask, False values will be interpolated
     func : callable
         Interpolation function to use, from scipy.interpolate
 
     Returns
     -------
-    np.Array, shape (num_timesteps, num_features)
+    np.array, shape (num_timesteps, num_features)
         Interpolated sequence
     """
     sequence = sequence.copy()
