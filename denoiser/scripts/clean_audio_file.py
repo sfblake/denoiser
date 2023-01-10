@@ -35,7 +35,7 @@ parser.add_argument(
     help='Destination for cleaned file'
 )
 parser.add_argument(
-    '--model',
+    '--model-dir',
     type=str,
     required=True,
     help='Keras model (directory) to load'
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     bitrate, audio_sequence = wavfile.read(os.path.join(args.input))
 
     logging.info(f"Loading model {args.model}")
-    model = tf.keras.models.load_model(args.model)
+    model = tf.keras.models.load_model(args.model_dir)
 
     predict_start = datetime.now()
     preds = make_predictions(audio_sequence, model)

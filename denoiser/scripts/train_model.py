@@ -4,16 +4,23 @@ import numpy as np
 import tempfile
 import tensorflow as tf
 
+from denoiser.models import create_model
 from denoiser.train import create_tfrecords, create_sample_from_tfrecord
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    '--data_dir',
+    '--data-dir',
     type=str,
     required=True,
     help='Input data directory. Expected to contain two subdirectories, `raw` and `clean`, containing identically' \
          'named sets of .wav files, with and without noise respectively'
+)
+parser.add_argument(
+    '--model-dir',
+    type=str,
+    required=True,
+    help='Output directory for the saved model. Can be used by clean_audio_file once trained'
 )
 parser.add_argument(
     '--sample-size',
@@ -58,6 +65,18 @@ parser.add_argument(
     help='Dataset shuffle buffer size'
 )
 parser.add_argument(
+    '--learning-rate',
+    type=float,
+    default=0.1,
+    help='Learning rate'
+)
+parser.add_argument(
+    '--epochs',
+    type=int,
+    default=10,
+    help='Number of training epochs'
+)
+parser.add_argument(
     '--log',
     action='store_true'
 )
@@ -98,3 +117,15 @@ if __name__ == "__main__":
         dataset = dataset.shuffle(shuffle_buffer_size)
         dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
         dataset = dataset.batch(args.batch_size)
+
+        model = create_model(sample_length=int(args.sample_size*bitrate))
+
+        model.compile(
+            optimizer=tf.keras.optimizers.Adam(learning_rate=args.learning_rate),
+            loss=tf.keras.losses.binary_crossentropy,
+            metrics=[tf.keras.metrics.Precision(), tf.keras.metrics.Recall()]
+        )
+
+        model.fit(dataset, epochs=args.epochs)
+
+        model.save(args.model_dir)
