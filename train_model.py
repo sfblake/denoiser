@@ -90,7 +90,7 @@ if __name__ == "__main__":
         logger.addHandler(logging.StreamHandler())
 
     with tempfile.TemporaryDirectory() as training_dir:
-        logging.info(f"Creating training samples from {args.input_dir}")
+        logging.info(f"Creating training samples from {args.data_dir}")
         tfrecord_files, bitrate = create_tfrecords(
             input_dir=args.data_dir,
             output_dir=training_dir,
@@ -126,6 +126,7 @@ if __name__ == "__main__":
             metrics=[tf.keras.metrics.Precision(), tf.keras.metrics.Recall()]
         )
 
-        model.fit(dataset, epochs=args.epochs)
+        model.fit(dataset, epochs=args.epochs, verbose=int(args.log))
 
         model.save(args.model_dir)
+        logging.info(f"Saved model to {args.model_dir}")
