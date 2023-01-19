@@ -21,4 +21,12 @@ def create_model(sample_length: int) -> tf.keras.Model:
     out = tf.keras.layers.Conv1D(16, 5, padding='same', activation='relu')(out)
     out = tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(1, activation='sigmoid'))(out)
     out = tf.keras.layers.Reshape((sample_length,))(out)
-    return tf.keras.Model(inputs=inputs, outputs=out)
+    model = tf.keras.Model(inputs=inputs, outputs=out)
+
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=0.1),
+        loss=tf.keras.losses.binary_crossentropy,
+        metrics=[tf.keras.metrics.Precision(), tf.keras.metrics.Recall()]
+    )
+
+    return model

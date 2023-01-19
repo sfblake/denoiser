@@ -2,10 +2,9 @@ import argparse
 import logging
 import numpy as np
 import tempfile
-import tensorflow as tf
 
 from denoiser.models import create_model
-from denoiser.train import create_tfrecords, create_sample_from_tfrecord
+from denoiser.train import create_tfrecords, create_dataset_from_file_list
 
 
 parser = argparse.ArgumentParser()
@@ -65,16 +64,16 @@ parser.add_argument(
     help='Dataset shuffle buffer size'
 )
 parser.add_argument(
-    '--learning-rate',
-    type=float,
-    default=0.1,
-    help='Learning rate'
-)
-parser.add_argument(
     '--epochs',
     type=int,
     default=10,
     help='Number of training epochs'
+)
+parser.add_argument(
+    '--validation-split',
+    type=float,
+    default=0.1,
+    help='Fraction of samples to keep for evaluation'
 )
 parser.add_argument(
     '--log',
@@ -112,21 +111,23 @@ if __name__ == "__main__":
             shuffle_buffer_size = args.samples_per_tfrecord * 10  # Default to shuffling over multiple tfrecords
 
         np.random.shuffle(tfrecord_files)
-        dataset = tf.data.TFRecordDataset(tfrecord_files)
-        dataset = dataset.map(create_sample_from_tfrecord, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        dataset = dataset.shuffle(shuffle_buffer_size)
-        dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-        dataset = dataset.batch(args.batch_size)
+        num_val_files = int(args.validation_split*len(tfrecord_files))
+        if num_val_files > 0:
+            dataset = create_dataset_from_file_list(
+                tfrecord_files[:-num_val_files], shuffle_buffer_size=shuffle_buffer_size, batch_size=args.batch_size
+            )
+            validation_dataset = create_dataset_from_file_list(
+                tfrecord_files[-num_val_files:], shuffle_buffer_size=shuffle_buffer_size, batch_size=args.batch_size
+            )
+        else:
+            dataset = create_dataset_from_file_list(
+                tfrecord_files, shuffle_buffer_size=shuffle_buffer_size, batch_size=args.batch_size
+            )
+            validation_dataset=None
 
         model = create_model(sample_length=int(args.sample_size*bitrate))
 
-        model.compile(
-            optimizer=tf.keras.optimizers.Adam(learning_rate=args.learning_rate),
-            loss=tf.keras.losses.binary_crossentropy,
-            metrics=[tf.keras.metrics.Precision(), tf.keras.metrics.Recall()]
-        )
-
-        model.fit(dataset, epochs=args.epochs, verbose=int(args.log))
+        model.fit(dataset, validation_data=validation_dataset, epochs=args.epochs, verbose=int(args.log))
 
         model.save(args.model_dir)
         logging.info(f"Saved model to {args.model_dir}")

@@ -4,7 +4,7 @@ import os
 from scipy.io import wavfile
 import shutil
 import tensorflow as tf
-from typing import Tuple
+from typing import List, Tuple
 
 from denoiser.utils import list_wavfiles, read_tfrecord, write_tfrecord, DATA_KEY_0, DATA_KEY_1, LABEL_KEY
 
@@ -96,7 +96,34 @@ def create_tfrecords(input_dir: str, output_dir: str, sample_size: float, step_s
     return output_files, bitrate
 
 
-def create_sample_from_tfrecord(example: tf.train.Example) -> Tuple[tf.Tensor, tf.Tensor]:
+def create_dataset_from_file_list(file_list: List[str], shuffle_buffer_size: int, batch_size: int) \
+        -> tf.data.TFRecordDataset:
+    """
+    Create a tfrecord dataset from a list of tfrecord files.
+
+    Parameters
+    ----------
+    file_list: List[str]
+        List of tfrecord files
+    shuffle_buffer_size: int
+        Number of samples to load before shuffling
+    batch_size: int
+        Batch size for output
+
+    Returns
+    -------
+    tf.data.TFRecordDataset
+        tfrecord dataset
+    """
+    dataset = tf.data.TFRecordDataset(file_list)
+    dataset = dataset.map(_create_sample_from_tfrecord, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    dataset = dataset.shuffle(shuffle_buffer_size)
+    dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+    dataset = dataset.batch(batch_size)
+    return dataset
+
+
+def _create_sample_from_tfrecord(example: tf.train.Example) -> Tuple[tf.Tensor, tf.Tensor]:
     """
     Convert a tfrecord example into a training sample and label.
 
